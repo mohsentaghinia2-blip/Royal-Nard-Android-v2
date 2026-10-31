@@ -1,0 +1,30 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.martivecode.royalnard'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.martivecode.royalnard'
+        minSdk 23
+        targetSdk 35
+        versionCode 107
+        versionName '10.7'
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
