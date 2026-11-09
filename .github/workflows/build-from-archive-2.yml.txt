@@ -1,0 +1,75 @@
+name: Build Royal Nard Android APK (10.9 THEMES)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'RoyalNard_v10_9_THEMES.zip'
+      - '.github/workflows/build-from-archive.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract the correct 10.9 THEMES source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="$GITHUB_WORKSPACE/RoyalNard_v10_9_THEMES.zip"
+          SRC="$RUNNER_TEMP/royalnard-10.9-themes"
+          test -f "$ARCHIVE" || { echo 'ERROR: RoyalNard_v10_9_THEMES.zip not found in repository root'; exit 1; }
+          mkdir -p "$SRC"
+          unzip -q "$ARCHIVE" -d "$SRC"
+          test -f "$SRC/settings.gradle"
+          test -f "$SRC/app/build.gradle"
+          test -f "$SRC/app/src/main/assets/index.html"
+          grep -q 'data-theme="emerald"' "$SRC/app/src/main/assets/index.html"
+          grep -q 'data-theme="silver"' "$SRC/app/src/main/assets/index.html"
+          grep -q 'data-theme="turquoise"' "$SRC/app/src/main/assets/index.html"
+          grep -q 'data-theme="burgundy"' "$SRC/app/src/main/assets/index.html"
+          # The archive carries 10.8 Gradle metadata; align the installed app with this 10.9 theme build.
+          sed -i "s/versionCode 108/versionCode 109/; s/versionName '10.8'/versionName '10.9'/" "$SRC/app/build.gradle"
+          grep -q "versionCode 109" "$SRC/app/build.gradle"
+          grep -q "versionName '10.9'" "$SRC/app/build.gradle"
+          cp -a "$SRC/." "$GITHUB_WORKSPACE/"
+          echo 'Verified: build source is RoyalNard_v10_9_THEMES.zip and contains the theme selector.'
+
+      - name: Run game rules smoke tests
+        run: node tools/smoke-test.js
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Install Android platform and build tools
+        run: sdkmanager 'platform-tools' 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build Royal Nard 10.9 THEMES APK
+        run: gradle --no-daemon clean assembleDebug
+
+      - name: Upload 10.9 THEMES APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Royal-Nard-10.9-THEMES-Android-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
